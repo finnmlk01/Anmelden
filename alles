@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anmeldung & Nachrichten</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        .container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .container input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .container button:hover {
+            background-color: #0056b3;
+        }
+        .toggle-link {
+            text-align: center;
+            margin-top: 15px;
+            cursor: pointer;
+            color: #007BFF;
+        }
+        .toggle-link:hover {
+            text-decoration: underline;
+        }
+        #error {
+            color: red;
+            text-align: center;
+        }
+        .search-container, .message-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="loginSection">
+        <!-- Anmeldeformular -->
+        <div id="loginForm">
+            <h2>Anmeldung</h2>
+            <form onsubmit="return login(event)">
+                <input type="text" id="loginUsername" placeholder="Benutzername" required>
+                <input type="password" id="loginPassword" placeholder="Passwort" required>
+                <button type="submit">Anmelden</button>
+            </form>
+            <p class="toggle-link" onclick="toggleForm()">Noch kein Konto? Registrieren</p>
+            <p id="loginError"></p>
+        </div>
+
+        <!-- Registrierungsformular -->
+        <div id="registerForm" style="display: none;">
+            <h2>Registrierung</h2>
+            <form onsubmit="return register(event)">
+                <input type="text" id="registerUsername" placeholder="Benutzername" required>
+                <input type="password" id="registerPassword" placeholder="Passwort" required>
+                <input type="password" id="confirmPassword" placeholder="Passwort bestätigen" required>
+                <button type="submit">Registrieren</button>
+            </form>
+            <p class="toggle-link" onclick="toggleForm()">Bereits ein Konto? Anmelden</p>
+            <p id="registerError"></p>
+        </div>
+    </div>
+
+    <!-- Suche nach Benutzern und Nachrichtenbereich -->
+    <div class="container" id="dashboardSection" style="display: none;">
+        <h2>Willkommen, <span id="loggedInUser"></span></h2>
+        <div class="search-container">
+            <h3>Nach Benutzer suchen</h3>
+            <input type="text" id="searchUsername" placeholder="Benutzernamen eingeben">
+            <button onclick="searchUser()">Suchen</button>
+            <p id="searchResult"></p>
+        </div>
+        <div class="message-container" id="messageSection" style="display: none;">
+            <h3>Nachricht an <span id="recipient"></span></h3>
+            <textarea id="messageText" rows="4" cols="50" placeholder="Nachricht eingeben..."></textarea>
+            <button onclick="sendMessage()">Senden</button>
+            <p id="messageStatus"></p>
+        </div>
+    </div>
+
+    <script>
+        let users = {}; // Einfaches Objekt, um Benutzer zu speichern
+        let currentUser = null; // Der aktuell angemeldete Benutzer
+
+        function toggleForm() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            registerForm.style.display = registerForm.style.display === 'none' ? 'block' : 'none';
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('registerError').textContent = '';
+        }
+
+        function login(event) {
+            event.preventDefault(); // Verhindert das Neuladen der Seite
+
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Überprüfen, ob der Benutzer existiert und das Passwort korrekt ist
+            if (users[username] && users[username].password === password) {
+                currentUser = username;
+                document.getElementById('loggedInUser').textContent = currentUser;
+                showDashboard();
+            } else {
+                document.getElementById('loginError').textContent = "Falscher Benutzername oder Passwort!";
+            }
+        }
+
+        function register(event) {
+            event.preventDefault(); // Verhindert das Neuladen der Seite
+
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Überprüfung der Passwortbestätigung
+            if (password !== confirmPassword) {
+                document.getElementById('registerError').textContent = "Passwörter stimmen nicht überein!";
+                return;
+            }
+
+            // Überprüfen, ob der Benutzername bereits existiert
+            if (users[username]) {
+                document.getElementById('registerError').textContent = "Benutzername existiert bereits!";
+                return;
+            }
+
+            // Benutzer registrieren
+            users[username] = { password: password, messages: [] };
+            alert('Erfolgreich registriert! Jetzt anmelden.');
+            toggleForm(); // Wechseln zum Anmeldeformular
+        }
+
+        function showDashboard() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+        }
+
+        function searchUser() {
+            const searchUsername = document.getElementById('searchUsername').value;
+            const searchResult = document.getElementById('searchResult');
+
+            if (users[searchUsername] && searchUsername !== currentUser) {
+                searchResult.textContent = "Benutzer gefunden: " + searchUsername;
+                document.getElementById('recipient').textContent = searchUsername;
+                document.getElementById('messageSection').style.display = 'block';
+            } else if (searchUsername === currentUser) {
+                searchResult.textContent = "Du kannst dich nicht selbst anschreiben.";
+                document.getElementById('messageSection').style.display = 'none';
+            } else {
+                searchResult.textContent = "Benutzer nicht gefunden.";
+                document.getElementById('messageSection').style.display = 'none';
+            }
+        }
+
+        function sendMessage() {
+            const recipient = document.getElementById('recipient').textContent;
+            const message = document.getElementById('messageText').value;
+
+            if (recipient && message) {
+                users[recipient].messages.push({ from: currentUser, text: message });
+                document.getElementById('messageStatus').textContent = "Nachricht gesendet!";
+                document.getElementById('messageText').value = ""; // Eingabefeld leeren
+            } else {
+                document.getElementById('messageStatus').textContent = "Nachricht konnte nicht gesendet werden.";
+            }
+        }
+    </script>
+
+</body>
+</html>
